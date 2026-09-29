@@ -37,6 +37,16 @@ body {
   animation: walk 2.25s steps(10) infinite;
 }
 
+.cat.idleToSleep {
+  background-image: url("../assets/cat/cat_to_sleep.png");
+  animation: idleToSleep 3s steps(10) 1 forwards;
+}
+
+.cat.sleep {
+  background-image: url("../assets/cat/cat_sleep.png");
+  animation: sleep 2s steps(10) infinite;
+}
+
 @keyframes idle {
   from {
     background-position: 0 0;
@@ -48,6 +58,26 @@ body {
 }
 
 @keyframes walk {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -960px 0;
+  }
+}
+
+@keyframes idleToSleep {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -864px 0;
+  }
+}
+
+@keyframes sleep {
   from {
     background-position: 0 0;
   }

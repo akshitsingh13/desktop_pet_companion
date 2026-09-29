@@ -1,4 +1,4 @@
-import { mouse, sleep } from "@nut-tree-fork/nut-js";
+import { mouse } from "@nut-tree-fork/nut-js";
 import { app, BrowserWindow, ipcMain, screen } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -33,6 +33,7 @@ let currentDirection = direction.right;
 
 let idleTimer = null;
 let typingTimer = null;
+let sleepTimer = null;
 
 let isTyping = false;
 
@@ -57,10 +58,25 @@ function createWindow() {
     win.webContents.send("pet-state", currentState);
     win.webContents.send("pet-direction", currentDirection);
 
+    startSleepTimer();
+
     setInterval(() => {
       moveCat();
     }, 16);
   });
+}
+
+function startSleepTimer() {
+  clearTimeout(sleepTimer);
+
+  sleepTimer = setTimeout(() => {
+    if (currentState === states.idle && !isTyping) {
+      currentState = states.idleToSleep;
+      win.webContents.send("pet-state", currentState);
+    }
+
+    sleepTimer = null;
+  }, 20000);
 }
 
 async function getMousePosition() {
@@ -85,66 +101,75 @@ async function moveCat() {
 
   const mouseMoved = prevX !== null && (prevX !== mouseX || prevY !== mouseY);
 
-  if (isTyping) {
-  } else if (mouseMoved) {
-    clearTimeout(idleTimer);
-    idleTimer = null;
+  if (
+    currentState !== states.sleep &&
+    currentState !== states.idleToSleep &&
+    !isTyping
+  ) {
+    if (mouseMoved) {
+      clearTimeout(sleepTimer);
+      sleepTimer = null;
 
-    if (prevX !== null) {
-      if (mouseX > prevX) {
-        if (currentDirection !== direction.right) {
-          currentDirection = direction.right;
+      clearTimeout(idleTimer);
+      idleTimer = null;
 
-          win.webContents.send("pet-direction", currentDirection);
-        }
-      } else if (mouseX < prevX) {
-        if (currentDirection !== direction.left) {
-          currentDirection = direction.left;
-
-          win.webContents.send("pet-direction", currentDirection);
+      if (prevX !== null) {
+        if (mouseX > prevX) {
+          if (currentDirection !== direction.right) {
+            currentDirection = direction.right;
+            win.webContents.send("pet-direction", currentDirection);
+          }
+        } else if (mouseX < prevX) {
+          if (currentDirection !== direction.left) {
+            currentDirection = direction.left;
+            win.webContents.send("pet-direction", currentDirection);
+          }
         }
       }
-    }
 
-    if (currentState !== states.walk) {
-      currentState = states.walk;
+      if (currentState !== states.walk) {
+        currentState = states.walk;
+        win.webContents.send("pet-state", currentState);
+      }
+    } else {
+      if (currentState === states.walk && idleTimer === null) {
+        idleTimer = setTimeout(() => {
+          if (!isTyping) {
+            currentState = states.idle;
+            win.webContents.send("pet-state", currentState);
 
-      win.webContents.send("pet-state", currentState);
-    }
-  } else {
-    if (currentState === states.walk && idleTimer === null) {
-      idleTimer = setTimeout(() => {
-        if (!isTyping) {
-          currentState = states.idle;
+            startSleepTimer();
+          }
 
-          win.webContents.send("pet-state", currentState);
-        }
-
-        idleTimer = null;
-      }, 1000);
+          idleTimer = null;
+        }, 1000);
+      }
     }
   }
 
   prevX = mouseX;
   prevY = mouseY;
 
-  const distanceX = mouseX - catX;
-  const distanceY = mouseY - catY;
+  if (currentState !== states.sleep && currentState !== states.idleToSleep) {
+    const distanceX = mouseX - catX;
+    const distanceY = mouseY - catY;
 
-  catX += distanceX * 0.2;
-  catY += distanceY * 0.2;
+    catX += distanceX * 0.2;
+    catY += distanceY * 0.2;
 
-  win.setPosition(Math.round(catX), Math.round(catY));
+    win.setPosition(Math.round(catX), Math.round(catY));
+  }
 }
 
-ipcMain.on("pet-typing", async () => {
+ipcMain.on("pet-typing", () => {
   isTyping = true;
 
   clearTimeout(typingTimer);
+  clearTimeout(sleepTimer);
+  clearTimeout(idleTimer);
 
   if (currentState !== states.typing) {
     currentState = states.typing;
-
     win.webContents.send("pet-state", currentState);
   }
 
@@ -166,14 +191,20 @@ ipcMain.on("pet-typing", async () => {
 
     if (mouseMoved) {
       currentState = states.walk;
-
       win.webContents.send("pet-state", currentState);
     } else {
       currentState = states.idle;
-
       win.webContents.send("pet-state", currentState);
+      startSleepTimer();
     }
   }, 1000);
+});
+
+ipcMain.on("sleep-animation-complete", () => {
+  if (currentState === states.idleToSleep) {
+    currentState = states.sleep;
+    win.webContents.send("pet-state", currentState);
+  }
 });
 
 ipcMain.handle("get-mouse-position", async () => {
