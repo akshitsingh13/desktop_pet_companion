@@ -1,4 +1,4 @@
-import { mouse } from "@nut-tree-fork/nut-js";
+import { mouse, keyboard } from "@nut-tree-fork/nut-js";
 import { app, BrowserWindow, ipcMain, screen } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -76,7 +76,7 @@ function startSleepTimer() {
     }
 
     sleepTimer = null;
-  }, 20000);
+  }, 5000);
 }
 
 async function getMousePosition() {
@@ -101,9 +101,15 @@ async function moveCat() {
 
   const mouseMoved = prevX !== null && (prevX !== mouseX || prevY !== mouseY);
 
-  if (
+  if (currentState === states.sleep) {
+    if (mouseMoved) {
+      currentState = states.wakeup;
+      win.webContents.send("pet-state", currentState);
+    }
+  } else if (
     currentState !== states.sleep &&
     currentState !== states.idleToSleep &&
+    currentState !== states.wakeup &&
     !isTyping
   ) {
     if (mouseMoved) {
@@ -150,7 +156,11 @@ async function moveCat() {
   prevX = mouseX;
   prevY = mouseY;
 
-  if (currentState !== states.sleep && currentState !== states.idleToSleep) {
+  if (
+    currentState !== states.sleep &&
+    currentState !== states.idleToSleep &&
+    currentState !== states.wakeup
+  ) {
     const distanceX = mouseX - catX;
     const distanceY = mouseY - catY;
 
@@ -203,6 +213,13 @@ ipcMain.on("pet-typing", () => {
 ipcMain.on("sleep-animation-complete", () => {
   if (currentState === states.idleToSleep) {
     currentState = states.sleep;
+    win.webContents.send("pet-state", currentState);
+  }
+});
+
+ipcMain.on("wakeup-animation-complete", () => {
+  if (currentState === states.wakeup) {
+    currentState = states.walk;
     win.webContents.send("pet-state", currentState);
   }
 });

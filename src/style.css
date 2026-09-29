@@ -47,6 +47,11 @@ body {
   animation: sleep 2s steps(10) infinite;
 }
 
+.cat.wakeup {
+  background-image: url("../assets/cat/cat_wakeup.png");
+  animation: wakeup 1s steps(10) 1 forwards;
+}
+
 @keyframes idle {
   from {
     background-position: 0 0;
@@ -78,6 +83,16 @@ body {
 }
 
 @keyframes sleep {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -960px 0;
+  }
+}
+
+@keyframes wakeup {
   from {
     background-position: 0 0;
   }

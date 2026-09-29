@@ -18,4 +18,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setTyping: () => ipcRenderer.send("pet-typing"),
 
   sleepAnimationComplete: () => ipcRenderer.send("sleep-animation-complete"),
+
+  wakeupAnimationComplete: () => ipcRenderer.send("wakeup-animation-complete"),
 });

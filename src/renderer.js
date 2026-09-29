@@ -8,7 +8,15 @@ async function checkMousePosition() {
 window.electronAPI.onPetStateChange((state) => {
   const cat = document.querySelector(".cat");
 
-  cat.classList.remove("idle", "walk", "typing", "idleToSleep", "sleep");
+  cat.classList.remove(
+    "idle",
+    "walk",
+    "typing",
+    "idleToSleep",
+    "sleep",
+    "wakeup",
+  );
+
   cat.classList.add(state);
 
   if (state === "idleToSleep") {
@@ -16,6 +24,16 @@ window.electronAPI.onPetStateChange((state) => {
       "animationend",
       () => {
         window.electronAPI.sleepAnimationComplete();
+      },
+      { once: true },
+    );
+  }
+
+  if (state === "wakeup") {
+    cat.addEventListener(
+      "animationend",
+      () => {
+        window.electronAPI.wakeupAnimationComplete();
       },
       { once: true },
     );
